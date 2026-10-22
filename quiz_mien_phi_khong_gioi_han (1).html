@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quiz của tôi</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#202538;background:#f4f6fb}
+*{box-sizing:border-box}body{margin:0;padding:20px}.wrap{max-width:900px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-size:1.7rem}.sub{color:#657087;margin:.4rem 0 1.2rem}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+button{border:0;border-radius:10px;padding:11px 15px;font:inherit;font-weight:650;cursor:pointer}
+.primary{background:#5656d9;color:white}.secondary{background:#e6e9f7;color:#30365a}.danger{background:#ffe7e7;color:#a12626}
+.card{background:white;border:1px solid #e1e5f0;border-radius:16px;padding:20px;margin:12px 0;box-shadow:0 5px 18px #25335a0a}
+label{display:block;font-weight:650;margin:12px 0 6px}input[type=text],textarea,select{width:100%;border:1px solid #ccd3e2;border-radius:9px;padding:11px;font:inherit}
+textarea{min-height:70px;resize:vertical}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.options{display:grid;gap:9px;margin:16px 0}
+.opt{border:1px solid #d8deeb;border-radius:11px;padding:13px;text-align:left;background:white;width:100%;font-weight:500}
+.opt:hover:not(:disabled){border-color:#6666dd;background:#f7f7ff}.opt.correct{border-color:#22955b;background:#e8f8ef;color:#12643b}.opt.wrong{border-color:#d74a4a;background:#fff0f0;color:#9b2525}
+.note{padding:12px;border-radius:10px;margin:12px 0}.good{background:#e8f8ef;color:#12643b}.bad{background:#fff0f0;color:#9b2525}
+.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.row label{font-weight:500;margin:5px 10px 5px 0}.small{font-size:.92rem;color:#69738a}.hidden{display:none!important}.qtitle{font-size:1.25rem;font-weight:750;line-height:1.4}.progress{height:8px;background:#e7eaf3;border-radius:99px;overflow:hidden;margin:14px 0}.bar{height:100%;width:0;background:#5c5cde;transition:width .2s}.question-item{border-top:1px solid #edf0f6;padding:14px 0}.question-item:first-child{border-top:0}.pill{background:#eef0ff;color:#4242a9;border-radius:99px;padding:4px 9px;font-size:.85rem}
+@media(max-width:600px){body{padding:12px}.card{padding:15px}.grid{grid-template-columns:1fr}h1{font-size:1.4rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>🎯 Quiz của tôi</h1><span class="pill">Miễn phí · Không giới hạn lượt chơi</span></header>
+<p class="sub">Tạo câu hỏi, đảo câu/đáp án, xem đúng sai ngay sau mỗi câu và tính điểm tự động.</p>
+<div class="tabs" id="tabs"><button class="secondary" id="editTab">✏️ Tạo / sửa câu hỏi</button><button class="secondary" id="playTab">▶ Chơi thử</button><button class="secondary" id="exportBtn">Tải bản sao câu hỏi</button><button class="secondary" id="importBtn">Nhập câu hỏi</button><button class="primary" id="shareBtn">🔗 Tạo link chỉ chơi</button><input id="importFile" type="file" accept=".json,application/json" class="hidden"></div>
+<section id="editor" class="card">
+<h2>Thông tin bài quiz</h2>
+<label for="quizTitle">Tên bài quiz</label><input id="quizTitle" type="text" value="Quiz của tôi">
+<div class="row" style="margin-top:14px">
+<label><input id="shuffleQ" type="checkbox" checked> Đảo thứ tự câu hỏi mỗi lượt</label>
+<label><input id="shuffleA" type="checkbox" checked> Đảo thứ tự đáp án mỗi câu</label>
+</div>
+<p class="small">Mỗi câu có 4 lựa chọn và 1 đáp án đúng. Bài quiz được lưu trong trình duyệt trên thiết bị này.</p>
+<div id="questionEditor"></div>
+<div class="row"><button class="primary" id="addQ">＋ Thêm câu hỏi</button><button class="secondary" id="startFromEdit">Lưu và chơi thử →</button></div>
+</section>
+<section id="player" class="card hidden">
+<div class="row" style="justify-content:space-between"><span id="counter" class="pill">Câu 1/1</span><span id="liveScore" class="small">Điểm: 0</span></div>
+<div class="progress"><div id="bar" class="bar"></div></div>
+<div id="questionText" class="qtitle"></div>
+<div id="options" class="options"></div>
+<div id="feedback" aria-live="polite"></div>
+<div class="row"><button class="primary hidden" id="nextBtn">Câu tiếp theo →</button><button class="secondary" id="restartBtn">Chơi lại từ đầu</button><button class="secondary" id="backEdit">Sửa câu hỏi</button></div>
+</section>
+<section id="results" class="card hidden">
+<h2>🎉 Hoàn thành!</h2><p id="finalScore" class="qtitle"></p><p id="finalMessage"></p>
+<div class="row"><button class="primary" id="playAgain">Chơi lại</button><button class="secondary" id="reviewBtn">Xem đáp án</button><button class="secondary" id="resultEdit">Sửa câu hỏi</button></div>
+<div id="review" class="hidden"></div>
+</section>
+<p class="small">Lưu ý: đây là một trang HTML độc lập. Em có thể chơi không giới hạn trên máy này. Muốn người khác truy cập bằng link riêng, cần đăng trang lên một dịch vụ lưu trữ miễn phí như GitHub Pages.</p>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let questions=[
+ {text:"Ví dụ: Thủ đô của Việt Nam là gì?", options:["Hà Nội","Đà Nẵng","Huế","Cần Thơ"],correct:0},
+ {text:"Ví dụ: 2 + 3 bằng bao nhiêu?", options:["4","5","6","7"],correct:1}
+];
+let order=[],idx=0,score=0,answered=false,attempts=[];
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function renderEditor(){
+ $('questionEditor').innerHTML=questions.map((q,i)=>`<div class="question-item"><div class="row" style="justify-content:space-between"><h3>Câu ${i+1}</h3><button class="danger" data-del="${i}" ${questions.length===1?'disabled':''}>Xóa câu</button></div>
+ <label>Câu hỏi</label><textarea data-text="${i}">${escapeHTML(q.text)}</textarea>
+ <div class="grid">${q.options.map((o,j)=>`<div><label>Đáp án ${String.fromCharCode(65+j)}</label><input type="text" data-opt="${i},${j}" value="${escapeHTML(o)}"><button class="secondary" type="button" data-delopt="${i},${j}" style="margin-top:5px" ${q.options.length<=2?'disabled':''}>Xóa đáp án</button></div>`).join('')}</div><button class="secondary" type="button" data-addopt="${i}" ${q.options.length>=8?'disabled':''}>＋ Thêm đáp án (tối đa 8)</button>
+ <label>Đáp án đúng</label><select data-correct="${i}">${q.options.map((o,j)=>`<option value="${j}" ${q.correct===j?'selected':''}>${String.fromCharCode(65+j)} — ${escapeHTML(o||'(chưa nhập)')}</option>`).join('')}</select>
+ </div>`).join('');
+}
+function saveEditor(){
+ const title=$('quizTitle').value.trim()||'Quiz của tôi';
+ questions=questions.map((q,i)=>{
+ const text=document.querySelector(`[data-text="${i}"]`)?.value??q.text;
+ const options=q.options.map((o,j)=>document.querySelector(`[data-opt="${i},${j}"]`)?.value??o);
+ const correct=Number(document.querySelector(`[data-correct="${i}"]`)?.value??q.correct);
+ return {text,options,correct};
+ });
+ try{localStorage.setItem('myQuizData',JSON.stringify({title,questions,shuffleQ:$('shuffleQ').checked,shuffleA:$('shuffleA').checked}));}catch(e){}
+ return title;
+}
+function loadSaved(){
+ try{const d=JSON.parse(localStorage.getItem('myQuizData'));if(d&&Array.isArray(d.questions)&&d.questions.length){questions=d.questions;$('quizTitle').value=d.title||'Quiz của tôi';$('shuffleQ').checked=d.shuffleQ!==false;$('shuffleA').checked=d.shuffleA!==false;}}catch(e){}
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function show(section){['editor','player','results'].forEach(id=>$(id).classList.toggle('hidden',id!==section));}
+function startQuiz(){
+ saveEditor();
+ if(!questions.length){alert('Hãy thêm ít nhất một câu hỏi.');return;}
+ if(questions.some(q=>!q.text.trim()||q.options.some(o=>!o.trim()))){alert('Hãy điền đầy đủ câu hỏi và 4 đáp án.');return;}
+ order=questions.map((_,i)=>i);if($('shuffleQ').checked)shuffle(order);
+ idx=0;score=0;attempts=[];show('player');renderQuestion();
+}
+function renderQuestion(){
+ answered=false;const q=questions[order[idx]];
+ $('counter').textContent=`Câu ${idx+1}/${order.length}`;$('liveScore').textContent=`Điểm: ${score}`;
+ $('bar').style.width=`${idx/order.length*100}%`;$('questionText').textContent=q.text;$('feedback').innerHTML='';$('nextBtn').classList.add('hidden');
+ let choices=q.options.map((text,i)=>({text,original:i}));if($('shuffleA').checked)shuffle(choices);
+ $('options').innerHTML=choices.map(c=>`<button class="opt" data-answer="${c.original}">${escapeHTML(c.text)}</button>`).join('');
+ $('options').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>answer(Number(b.dataset.answer))));
+}
+function answer(selected){
+ if(answered)return;answered=true;
+ const q=questions[order[idx]],correct=selected===q.correct;
+ if(correct)score++;
+ attempts.push({questionIndex:order[idx],selected,correct});
+ $('options').querySelectorAll('button').forEach(b=>{
+ b.disabled=true;const n=Number(b.dataset.answer);
+ if(n===q.correct)b.classList.add('correct');else if(n===selected)b.classList.add('wrong');
+ });
+ $('feedback').innerHTML=correct?'<div class="note good"><strong>✓ Chính xác!</strong> Em trả lời đúng.</div>':`<div class="note bad"><strong>✗ Chưa đúng.</strong> Đáp án đúng là: <strong>${escapeHTML(q.options[q.correct])}</strong></div>`;
+ $('liveScore').textContent=`Điểm: ${score}`;$('bar').style.width=`${(idx+1)/order.length*100}%`;
+ $('nextBtn').textContent=idx===order.length-1?'Xem kết quả →':'Câu tiếp theo →';$('nextBtn').classList.remove('hidden');
+}
+function next(){if(!answered)return;if(idx<order.length-1){idx++;renderQuestion();}else finish();}
+function finish(){show('results');$('finalScore').textContent=`${score} / ${order.length} điểm`;const pct=Math.round(score/order.length*100);$('finalMessage').textContent=`Em đạt ${pct}%.`; $('review').classList.add('hidden');$('review').innerHTML='';}
+function review(){const r=$('review');r.classList.toggle('hidden');if(!r.classList.contains('hidden'))r.innerHTML=attempts.map((a,i)=>{const q=questions[a.questionIndex];return `<div class="question-item"><strong>${i+1}. ${escapeHTML(q.text)}</strong><p>Em chọn: ${escapeHTML(q.options[a.selected])}</p><p>Đáp án đúng: <strong>${escapeHTML(q.options[q.correct])}</strong> ${a.correct?'✓':''}</p></div>`}).join('');}
+$('questionEditor').addEventListener('input',e=>{if(e.target.matches('[data-opt]')){const [i,j]=e.target.dataset.opt.split(',').map(Number);const s=document.querySelector(`[data-correct="${i}"]`);if(s&&s.options[j])s.options[j].text=`${String.fromCharCode(65+j)} — ${e.target.value||'(chưa nhập)'}`;}});
+$('questionEditor').addEventListener('click',e=>{
+ const delQ=e.target.closest('[data-del]'); if(delQ){questions=readEditorIntoQuestions();questions.splice(Number(delQ.dataset.del),1);renderEditor();return;}
+ const addOpt=e.target.closest('[data-addopt]'); if(addOpt){questions=readEditorIntoQuestions();const i=Number(addOpt.dataset.addopt);if(questions[i].options.length<8)questions[i].options.push('');renderEditor();return;}
+ const delOpt=e.target.closest('[data-delopt]'); if(delOpt){questions=readEditorIntoQuestions();const [i,j]=delOpt.dataset.delopt.split(',').map(Number);if(questions[i].options.length>2){questions[i].options.splice(j,1);if(questions[i].correct===j)questions[i].correct=0;else if(questions[i].correct>j)questions[i].correct--;renderEditor();}return;}
+});
+function readEditorIntoQuestions(){return questions.map((q,i)=>{const text=document.querySelector(`[data-text="${i}"]`)?.value??q.text;const options=q.options.map((o,j)=>document.querySelector(`[data-opt="${i},${j}"]`)?.value??o);const correct=Number(document.querySelector(`[data-correct="${i}"]`)?.value??q.correct);return {text,options,correct};});}
+$('addQ').onclick=()=>{saveEditor();questions.push({text:'',options:['','','',''],correct:0});renderEditor();};
+$('startFromEdit').onclick=startQuiz;$('playTab').onclick=()=>{show('editor');startQuiz();};$('editTab').onclick=()=>{saveEditor();renderEditor();show('editor');};
+$('nextBtn').onclick=next;$('restartBtn').onclick=startQuiz;$('playAgain').onclick=startQuiz;$('backEdit').onclick=()=>{saveEditor();renderEditor();show('editor');};$('resultEdit').onclick=()=>{renderEditor();show('editor');};$('reviewBtn').onclick=review;
+$('exportBtn').onclick=()=>{saveEditor();const data={title:$('quizTitle').value,questions,shuffleQ:$('shuffleQ').checked,shuffleA:$('shuffleA').checked};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='quiz-cua-toi.json';a.click();URL.revokeObjectURL(a.href);};
+$('importBtn').onclick=()=>$('importFile').click();
+$('importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.questions)||!d.questions.length)throw Error();questions=d.questions;$('quizTitle').value=d.title||'Quiz của tôi';$('shuffleQ').checked=d.shuffleQ!==false;$('shuffleA').checked=d.shuffleA!==false;renderEditor();saveEditor();alert('Đã nhập câu hỏi!');}catch(err){alert('File JSON không đúng định dạng quiz.');}e.target.value='';};
+
+function getQuizData(){return {title:$('quizTitle').value.trim()||'Quiz của tôi',questions:readEditorIntoQuestions(),shuffleQ:$('shuffleQ').checked,shuffleA:$('shuffleA').checked};}
+function shareQuiz(){
+ const data=getQuizData();
+ if(!data.questions.length||data.questions.some(q=>!q.text.trim()||q.options.length<2||q.options.some(o=>!o.trim()))){alert('Hãy điền đầy đủ câu hỏi và ít nhất 2 đáp án cho mỗi câu trước khi tạo link.');return;}
+ if(location.protocol==='file:'){alert('Để bạn bè mở link trên thiết bị của họ, trước tiên cần đăng trang HTML lên một dịch vụ lưu trữ web miễn phí (ví dụ GitHub Pages). Khi trang đã có địa chỉ https://, bấm nút này để tạo link chỉ chơi.');return;}
+ const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(data))));const url=location.origin+location.pathname+'#play='+encoded;
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(()=>alert('Đã sao chép link chỉ chơi! Bạn bè mở link này chỉ làm bài, không thấy phần sửa câu hỏi.')).catch(()=>prompt('Sao chép link này để gửi bạn bè:',url));}else prompt('Sao chép link này để gửi bạn bè:',url);
+}
+function loadSharedQuiz(){
+ if(!location.hash.startsWith('#play='))return false;
+ try{const data=JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(6)))));if(!Array.isArray(data.questions)||!data.questions.length)throw Error();questions=data.questions;$('quizTitle').value=data.title||'Quiz được chia sẻ';$('shuffleQ').checked=data.shuffleQ!==false;$('shuffleA').checked=data.shuffleA!==false;
+ $('editor').classList.add('hidden');$('tabs').classList.add('hidden');$('editTab').classList.add('hidden');$('playTab').classList.add('hidden');$('exportBtn').classList.add('hidden');$('importBtn').classList.add('hidden');$('shareBtn').classList.add('hidden');$('importFile').classList.add('hidden');$('addQ').classList.add('hidden');$('startFromEdit').classList.add('hidden');$('backEdit').classList.add('hidden');$('resultEdit').classList.add('hidden');document.querySelector('header h1').textContent=data.title||'Quiz được chia sẻ';startQuiz();return true;
+ }catch(e){alert('Link quiz không hợp lệ hoặc bị cắt mất dữ liệu.');return false;}
+}
+$('shareBtn').onclick=shareQuiz;
+
+loadSaved();renderEditor();loadSharedQuiz();
+</script>
+</body></html>
